@@ -1,0 +1,58 @@
+---
+- name: Add auth to c3 - add properties
+  gather_facts: No
+  hosts: control_center
+  # add c3 properties
+  tasks:
+    - name: Import role variables
+      import_role:
+        name: confluent.variables_handlers
+    - name: Add properties
+      blockinfile:
+        path: /etc/confluent-control-center/control-center-production.properties
+        block: |
+          confluent.controlcenter.rest.authentication.method=BASIC
+          confluent.controlcenter.rest.authentication.realm=c3
+          confluent.controlcenter.rest.authentication.roles=Administrators,Restricted
+          confluent.controlcenter.auth.restricted.roles=Restricted
+    - name: Add properties file
+      blockinfile:
+        path: /etc/confluent-control-center/login.properties
+        create: yes
+        owner: cp-control-center
+        group: confluent
+        mode: '0644'
+        block: |
+          admin: admin_pw,Administrators
+          test: test_pw,Restricted
+    - name: Add JAAS file
+      blockinfile:
+        path: /etc/confluent-control-center/propertyfile.jaas
+        create: yes
+        owner: cp-control-center
+        group: confluent
+        mode: '0644'
+        marker: ""
+        block: |
+          c3 {
+            org.eclipse.jetty.jaas.spi.PropertyFileLoginModule required
+            file="/etc/confluent-control-center/login.properties";
+          };
+    - name: Remove blank lines blockinfile put in
+      lineinfile :
+        path: /etc/confluent-control-center/propertyfile.jaas
+        state: absent
+        regexp: '^$'
+    - name: Update Service Overrides
+      lineinfile:
+        path: "{{control_center.systemd_override}}"
+        regexp: "^(Environment=\"CONTROL_CENTER_OPTS=.*)\"$"
+        line: '\1 -Djava.security.auth.login.config=/etc/confluent-control-center/propertyfile.jaas"'
+        backrefs: yes
+    - name: reload systemd
+      command: systemctl daemon-reload
+
+    - name: Restart Service
+      systemd:
+        name: "{{ control_center_service_name }}"
+        state: restarted

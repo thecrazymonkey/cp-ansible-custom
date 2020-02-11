@@ -10,7 +10,6 @@ kafka_broker_sysctl:
   net.ipv4.tcp_wmem: '4096 212992 {{tuned_buffer_size}}'
 kafka_broker:  
   properties:
-    controlled.shutdown.enable: true
     advertised.listeners: "INTERNAL://{{inventory_hostname}}:9091,EXTERNAL://{{inventory_hostname}}:9093"
     authorizer.class.name: "kafka.security.auth.SimpleAclAuthorizer"
     super.users: "User:kafka1.ivan.confluent.nerdynick.net;User:kafka2.ivan.confluent.nerdynick.net;User:kafka3.ivan.confluent.nerdynick.net"
