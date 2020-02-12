@@ -1,7 +1,7 @@
 ---
 - name: Install docker
   gather_facts: No
-  hosts: kafka1.ivan.confluent.nerdynick.net
+  hosts: kafka1.ivan.aws.ps.confluent.io
 
   tasks:
     - name: Install yum utils

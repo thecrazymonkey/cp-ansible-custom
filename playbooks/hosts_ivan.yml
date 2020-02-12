@@ -3,9 +3,10 @@ all:
     ansible_connection: ssh
     ansible_user: centos
     ansible_become: true
+    cloud_vendor: aws
 zookeeper:
   hosts:
-    zk[1:3].ivan.confluent.nerdynick.net:
+    zk[1:3].ivan.aws.ps.confluent.io:
       ## By default the first host will get zookeeper id=1, second gets id=2. Set zookeeper_id to customize
       # zookeeper_id: 2
 
@@ -18,11 +19,11 @@ zookeeper:
       # zookeeper_id: 1
 kafka_broker:
   hosts:
-      kafka1.ivan.confluent.nerdynick.net:
+      kafka1.ivan.aws.ps.confluent.io:
         broker_id: 1
-      kafka2.ivan.confluent.nerdynick.net:
+      kafka2.ivan.aws.ps.confluent.io:
         broker_id: 2
-      kafka3.ivan.confluent.nerdynick.net:
+      kafka3.ivan.aws.ps.confluent.io:
         broker_id: 3
     # ip-172-31-34-246.us-east-2.compute.internal:
       ## By default the first host will get broker id=1, second gets id=2. Set broker_id to customize
@@ -37,13 +38,13 @@ kafka_broker:
       # broker_id: 1
 schema_registry:
   hosts:
-    kafka3.ivan.confluent.nerdynick.net:
+    kafka3.ivan.aws.ps.confluent.io:
       ## For kerberos sasl protocol, EACH host will need these two variables:
       # schema_registry_kerberos_keytab_path: <The path on ansible host to keytab file, eg. /tmp/keytabs/schemaregistry-ip-172-31-34-246.us-east-2.compute.internal
       # schema_registry_kerberos_principal: The principal configured in kdc server ex: schemaregistry/ip-172-31-34-246.us-east-2.compute.internal@REALM.EXAMPLE.COM>
 kafka_connect:
   hosts:
-    kafka2.ivan.confluent.nerdynick.net:
+    kafka2.ivan.aws.ps.confluent.io:
 
       ## For kerberos sasl protocol, EACH host will need these two variables:
       # kafka_connect_kerberos_keytab_path: <The path on ansible host to keytab file, eg. /tmp/keytabs/connect-ip-172-31-34-246.us-east-2.compute.internal
@@ -56,13 +57,13 @@ kafka_connect:
       # kafka_rest_kerberos_principal: The principal configured in kdc server ex: restproxy/ip-172-31-34-246.us-east-2.compute.internal@REALM.EXAMPLE.COM>
 ksql:
   hosts:
-    kafka3.ivan.confluent.nerdynick.net:
+    kafka3.ivan.aws.ps.confluent.io:
       ## For kerberos sasl protocol, EACH host will need these two variables:
       # ksql_kerberos_keytab_path: <The path on ansible host to keytab file, eg. /tmp/keytabs/ksql-ip-172-31-37-15.us-east-2.compute.internal
       # ksql_kerberos_principal: The principal configured in kdc server ex: ksql/ip-172-31-37-15.us-east-2.compute.internal@REALM.EXAMPLE.COM>
 control_center:
   hosts:
-    kafka1.ivan.confluent.nerdynick.net:
+    kafka1.ivan.aws.ps.confluent.io:
       ## For kerberos sasl protocol, EACH host will need these two variables:
       # control_center_kerberos_keytab_path: <The path on ansible host to keytab file, eg. /tmp/keytabs/controlcenter-ip-172-31-37-15.us-east-2.compute.internal
       # control_center_kerberos_principal: The principal configured in kdc server ex: controlcenter/ip-172-31-37-15.us-east-2.compute.internal@REALM.EXAMPLE.COM>
