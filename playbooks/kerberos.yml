@@ -1,0 +1,7 @@
+---
+- hosts: all
+  tags:
+    - kerberos
+  tasks:
+  - import_role:
+      name: krb5

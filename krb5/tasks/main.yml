@@ -1,0 +1,103 @@
+---
+- name: Disable Require TTY in Sudoers (required for ansible synchronize)
+  lineinfile:
+    path: /etc/sudoers
+    state: absent
+    regexp: '^Defaults\s+requiretty.*$'
+
+- name: Install the Packages - Red Hat
+  yum:
+    name: "{{item}}"
+    state: latest
+  loop: "{{ kerberos_packages_redhat }}"
+  when: ansible_os_family == "RedHat"
+
+- name: Install the Packages - Debian
+  apt:
+    name: "{{item}}"
+    update_cache: yes
+  loop: "{{ kerberos_packages_debian }}"
+  when: ansible_os_family == "Debian"
+
+- name: Create krb5.conf
+  template: 
+    dest: /etc/krb5.conf
+    src: krb5.conf.j2
+    mode: '0644'  
+
+- name: Create realm
+  command:
+    cmd: "kdb5_util create -s -r {{ kerberos.realm }} -P {{ kerberos_db_password }}"
+    creates: /var/kerberos/krb5kdc/principal
+
+- name: Create admin user
+  command: "kadmin.local -q 'addprinc -pw {{ kerberos_admin_password }} {{ kerberos_admin_user }}/admin@{{ kerberos.realm }}'"
+
+- name: Update kdc.conf
+  lineinfile:
+    path: /var/kerberos/krb5kdc/kdc.conf
+    regex: '\s+EXAMPLE.COM\s+=\s+{'
+    line: " {{ kerberos.realm }} = {"
+  when: ansible_os_family == "RedHat"
+  notify:
+    - restart kerberos redhat
+
+- name: Add admin ACL
+  lineinfile:
+    path: /etc/krb5kdc/kadm5.acl
+    line: "{{ kerberos_admin_user}}/admin@{{ kerberos.realm }}        *"
+  when: ansible_os_family == "Debian"
+  notify:
+    - restart kerberos ubuntu
+
+- name: Add admin ACL
+  lineinfile:
+    path: /var/kerberos/krb5kdc/kadm5.acl
+    line: "{{ kerberos_admin_user}}/admin@{{ kerberos.realm }}        *"
+  when: ansible_os_family == "RedHat"
+  notify:
+    - restart kerberos redhat
+
+- meta: flush_handlers
+
+- name: Start Kerberos Service
+  systemd:
+    name: "{{ item }}"
+    enabled: yes
+    state: started
+  loop: "{{ kerberos_services_ubuntu }}"
+  when: ansible_os_family == "Debian"
+
+- name: Start Kerberos Service
+  systemd:
+    name: "{{ item }}"
+    enabled: yes
+    state: started
+  loop: "{{ kerberos_services_redhat }}"
+  when: ansible_os_family == "RedHat"
+
+- name: Create keytabs folder
+  file:
+    path: /etc/security/keytabs
+    state: directory
+
+- name: Create service accounts
+  shell: | 
+    kadmin.local -q 'addprinc -randkey {{ item.service}}{{ '' if item.headless|bool else '/' + item.name + item.server_domain }}@{{ kerberos.realm }}'
+    kadmin.local -q 'ktadd -k /etc/security/keytabs/{{ item.name + item.server_domain }}.keytab {{ item.service }}{{ '' if item.headless|bool else '/' + item.name + item.server_domain }}@{{ kerberos.realm }}'
+  args:
+    creates: "/etc/security/keytabs/{{ item.name + item.server_domain }}.keytab"
+  with_items: 
+    - "{{ keytabs_list }}"
+  loop_control: 
+    label: "{{ item.name }}"
+
+- name: Fetch keytabs
+  fetch: 
+    dest: "{{ keytabs_folder }}/"
+    src: "/etc/security/keytabs/{{ item.name + item.server_domain }}.keytab"
+    flat: yes
+  with_items: 
+    - "{{ keytabs_list }}"
+  loop_control: 
+    label: "{{ item.name }}"

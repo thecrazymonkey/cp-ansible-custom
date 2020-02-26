@@ -1,0 +1,32 @@
+kerberos_packages_debian:
+  - krb5-kdc 
+  - krb5-admin-server
+kerberos_packages_redhat:
+  - krb5-libs
+  - krb5-server
+  - krb5-workstation
+
+kerberos_services_ubuntu: 
+  - krb5-kdc.service
+  - krb5-admin-server
+kerberos_services_redhat: 
+  - krb5kdc
+  - kadmin
+kerberos_admin_user: krb5admin
+kerberos_admin_password: krb5admin
+kerberos_db_password: krb5admin
+server_domain: ".ps.confluent.io"
+keytabs_folder: /tmp
+
+kerberos:
+    kdc_hostname: "{{ inventory_hostname }}"
+    admin_hostname: "{{ inventory_hostname }}"
+    realm: "PS.CONFLUENT.IO"
+    dns_lookup_realm: "false"
+    dns_lookup_kdc: "false"
+    ticket_lifetime: "24h"
+    forwardable: "true"
+    udp_preference_limit: 1
+    default_tkt_enctypes: aes256-cts-hmac-sha1-96 aes128-cts-hmac-sha1-96 arc-four-hmac rc4-hmac
+    default_tgs_enctypes: aes256-cts-hmac-sha1-96 aes128-cts-hmac-sha1-96 arc-four-hmac rc4-hmac
+    permitted_enctypes: aes256-cts-hmac-sha1-96 aes128-cts-hmac-sha1-96 arc-four-hmac rc4-hmac

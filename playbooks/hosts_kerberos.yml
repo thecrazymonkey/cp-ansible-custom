@@ -1,0 +1,85 @@
+all:
+  vars:
+    ansible_connection: ssh
+    ansible_user: centos
+    ansible_become: true
+    cloud_vendor: aws
+    keytabs_folder: /Users/ikunz/playground/keytabs
+    keytabs_list:
+      - name: zk1
+        headless: false
+        service: zookeeper
+        server_domain: ".ivan.aws.ps.confluent.io"
+      - name: zk2
+        headless: false
+        service: zookeeper
+        server_domain: ".ivan.aws.ps.confluent.io"
+      - name: zk3
+        headless: false
+        service: zookeeper
+        server_domain: ".ivan.aws.ps.confluent.io"
+      - name: kafka1
+        headless: false
+        service: kafka
+        server_domain: ".ivan.aws.ps.confluent.io"
+      - name: kafka2
+        headless: false
+        service: kafka
+        server_domain: ".ivan.aws.ps.confluent.io"
+      - name: kafka3
+        headless: false
+        service: kafka
+        server_domain: ".ivan.aws.ps.confluent.io"
+      - name: zk1
+        headless: false
+        service: zookeeper
+        server_domain: ".ivan.gcp.ps.confluent.io"
+      - name: zk2
+        headless: false
+        service: zookeeper
+        server_domain: ".ivan.gcp.ps.confluent.io"
+      - name: zk3
+        headless: false
+        service: zookeeper
+        server_domain: ".ivan.gcp.ps.confluent.io"
+      - name: kafka1
+        headless: false
+        service: kafka
+        server_domain: ".ivan.gcp.ps.confluent.io"
+      - name: kafka2
+        headless: false
+        service: kafka
+        server_domain: ".ivan.gcp.ps.confluent.io"
+      - name: kafka3
+        headless: false
+        service: kafka
+        server_domain: ".ivan.gcp.ps.confluent.io"
+      - name: zk1
+        headless: false
+        service: zookeeper
+        server_domain: ".ivan.maz.ps.confluent.io"
+      - name: zk2
+        headless: false
+        service: zookeeper
+        server_domain: ".ivan.maz.ps.confluent.io"
+      - name: zk3
+        headless: false
+        service: zookeeper
+        server_domain: ".ivan.maz.ps.confluent.io"
+      - name: kafka1
+        headless: false
+        service: kafka
+        server_domain: ".ivan.maz.ps.confluent.io"
+      - name: kafka2
+        headless: false
+        service: kafka
+        server_domain: ".ivan.maz.ps.confluent.io"
+      - name: kafka3
+        headless: false
+        service: kafka
+        server_domain: ".ivan.maz.ps.confluent.io"
+
+    
+kerberos:
+  hosts:
+    pes1.ivan.aws.ps.confluent.io:

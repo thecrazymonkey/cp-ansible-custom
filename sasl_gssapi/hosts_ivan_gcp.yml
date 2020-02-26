@@ -92,23 +92,17 @@ all:
         sasl_protocol: none
       external:
         name: EXTERNAL
-        port: 9092
-        ssl_enabled: true
-        ssl_mutual_auth_enabled: true
-        sasl_protocol: none
-    ## You can even add additional listeners, make sure all variables are set
-      client:
-        name: CLIENT
         port: 9093
         ssl_enabled: true
         ssl_mutual_auth_enabled: true
         sasl_protocol: none
-      plain:
-        name: PLAIN
-        port: 9094
-        ssl_enabled: false
-        ssl_mutual_auth_enabled: false
-        sasl_protocol: none
+    ## You can even add additional listeners, make sure all variables are set
+    #   client_listener:
+    #     name: CLIENT
+    #     port: 9093
+    #     ssl_enabled: true
+    #     ssl_mutual_auth_enabled: true
+    #     sasl_protocol: scram
 
     ## To set custom properties for each service
     ## Find property options in the Confluent Documentation
