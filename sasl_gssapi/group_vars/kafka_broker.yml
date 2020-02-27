@@ -20,4 +20,3 @@ kafka_broker:
                                       DEFAULT
     socket.receive.buffer.bytes: "{{tuned_buffer_size}}"
     socket.send.buffer.bytes: "{{tuned_buffer_size}}"
-kafka_broker_custom_java_args: "-Dsun.security.krb5.debug=true"

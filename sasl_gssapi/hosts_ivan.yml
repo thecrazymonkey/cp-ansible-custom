@@ -112,14 +112,19 @@ all:
 
     ## To set custom properties for each service
     ## Find property options in the Confluent Documentation
-    # zookeeper:
-    #   properties:
+    zookeeper:
+      properties:
+        authProvider.1: org.apache.zookeeper.server.auth.SASLAuthenticationProvider
+        requireClientAuthScheme: sasl 
     #     initLimit: 6
     #     syncLimit: 3
+    zookeeper_custom_java_args: "-Dzookeeper.kerberos.removeHostFromPrincipal=true -Dzookeeper.kerberos.removeRealmFromPrincipal=true"
     kafka_broker:
       properties:
         num.io.threads: 8
         num.network.threads: 3
+        zookeeper.set.acl: true
+      kafka_broker_custom_java_args: "-Dsun.security.krb5.debug=true"
     # schema_registry:
     #   properties:
     #     key: val
