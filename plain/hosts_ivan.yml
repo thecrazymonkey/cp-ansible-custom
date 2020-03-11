@@ -197,6 +197,8 @@ ksql:
       # ksql_kerberos_keytab_path: <The path on ansible host to keytab file, eg. /tmp/keytabs/ksql-ip-172-31-37-15.us-east-2.compute.internal
       # ksql_kerberos_principal: The principal configured in kdc server ex: ksql/ip-172-31-37-15.us-east-2.compute.internal@REALM.EXAMPLE.COM>
 control_center:
+  vars:
+    ansible_user
   hosts:
     kafka1.ivan.aws.ps.confluent.io:
       ## For kerberos sasl protocol, EACH host will need these two variables:
