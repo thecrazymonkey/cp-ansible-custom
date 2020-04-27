@@ -1,7 +1,7 @@
 all:
   vars:
-    confluent_repo_version: 5.3
-    confluent_package_version: 5.3.2
+#    confluent_repo_version: 5.3
+#    confluent_package_version: 5.3.2
     ansible_connection: ssh
     ansible_user: centos
     ansible_become: true

@@ -1,0 +1,15 @@
+# Maintained by Ansible
+clientPort=2181
+maxClientCnxns=0
+initLimit=5
+syncLimit=2
+autopurge.snapRetainCount=10
+autopurge.purgeInterval=1
+dataDir=/var/lib/zookeeper
+admin.enableServer=false
+server.1=zk1.ivan.aws.ps.confluent.io:2888:3888
+server.2=zk2.ivan.aws.ps.confluent.io:2888:3888:observer
+server.3=zk3.ivan.aws.ps.confluent.io:2888:3888
+server.4=zk4.ivan.aws.ps.confluent.io:2888:3888:observer
+server.5=zk5.ivan.aws.ps.confluent.io:2888:3888
+server.6=zk6.ivan.aws.ps.confluent.io:2888:3888:observer

@@ -1,23 +1,26 @@
 ---
 - name: Install docker
-  gather_facts: No
-  hosts: kafka1.ivan.aws.ps.confluent.io
+  gather_facts: Yes 
+  hosts: all
 
   tasks:
     - name: Install yum utils
       yum:
         name: yum-utils
         state: latest
+      become: yes
 
     - name: Install device-mapper-persistent-data
       yum:
         name: device-mapper-persistent-data
         state: latest
+      become: yes
 
     - name: Install lvm2
       yum:
         name: lvm2
         state: latest
+      become: yes
 
     - name: Add Docker repo
       get_url:

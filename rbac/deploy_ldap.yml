@@ -1,0 +1,32 @@
+---
+- name: Install OpenLDAP with users for RBAC
+  gather_facts: Yes 
+  hosts: all
+
+  tasks:
+    - name: Copy LDAP dictionary
+      copy:
+        src: "ldap_users"
+        dest: "./"
+        mode: 0640
+        owner: "centos"
+        group: "centos"
+    - name: Create OpenLDAP
+      docker_container:
+        name: openldap
+        hostname: openldap
+        image: osixia/openldap:latest
+        restart_policy: "always"
+        restart_retries" "20"
+        state: "started"
+        volumes:
+          - /home/centos/ldap_users:/container/service/slapd/assets/config/bootstrap/ldif/custom
+        ports:
+          - "389:389"
+          - "636:636"
+        env:
+          LDAP_ORGANISATION: "Confluent"
+          LDAP_DOMAIN: "ps.confluent.io"
+          LDAP_BASE_DN: "dc=ps,dc=confluent,dc=io"
+          LDAP_ADMIN_PASSWORD: "admin"
+        command: "--copy-service --loglevel debug"
