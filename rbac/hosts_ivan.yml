@@ -46,10 +46,10 @@ all:
     ## Option 2: Custom Keystores and Truststores
     ## CP-Ansible can move keystores/truststores to their corresponding hosts and configure the components to use them. Set These vars
     ssl_provided_keystore_and_truststore: true
-    ssl_keystore_filepath: "~/git/cp-ansible-sandbox/resources/ssl-certs/{{inventory_hostname}}.keystore.jks"
+    ssl_keystore_filepath: "~/playground/ssl-certs/{{inventory_hostname}}.keystore.jks"
     ssl_keystore_key_password: test1234
     ssl_keystore_store_password: test1234
-    ssl_truststore_filepath: "~/git/cp-ansible-sandbox/resources/ssl-certs/{{inventory_hostname}}.truststore.jks"
+    ssl_truststore_filepath: "~/playground/ssl-certs/{{inventory_hostname}}.truststore.jks"
     ssl_truststore_password: test1234
     ssl_truststore_ca_cert_alias: caroot
 
@@ -173,7 +173,7 @@ all:
     # token_services_private_pem_file: /path/to/tokenKeypair.pem
     # mds_acls_enabled: false #to turn off mds based acls, they are on by default if rbac is on
     # mds_ssl_enabled: true/false #defaults to whatever ssl_enabled var is set to
-    # mds_ssl_mutual_auth_enabled: true/false #defaults to whatever ssl_mutual_auth_enabled var is set to
+    mds_ssl_mutual_auth_enabled: false #defaults to whatever ssl_mutual_auth_enabled var is set to
     ## Allow the playbooks to configure additional users as system admins on the platform, set the list below
     # rbac_component_additional_system_admins:
     #   - kafka1.ivan.aws.ps.confluent.io
