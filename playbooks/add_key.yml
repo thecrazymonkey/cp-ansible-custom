@@ -1,0 +1,13 @@
+---
+- name: Add key to all hosts
+  gather_facts: No
+  hosts: all
+
+  tasks:
+    - name: Add key to all hosts
+      lineinfile:
+        dest: ~/.ssh/authorized_keys
+        line: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+        create: yes
+      become: yes
+      become_user: "{{ ansible_user }}"

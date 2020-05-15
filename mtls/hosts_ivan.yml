@@ -1,11 +1,11 @@
 all:
   vars:
-#    confluent_repo_version: 5.4
-#    confluent_package_version: 5.4.2
+#   confluent_repo_version: 5.4
+#   confluent_package_version: 5.4.2
     ansible_connection: ssh
     ansible_user: centos
     ansible_become: true
-    ansible_ssh_private_key_file: ~/.ssh/ivan.pem
+    ansible_ssh_private_key_file: ~/.ssh/ivan_gcp
     redhat_java_package_name: java-11-openjdk
 
     #### Setting Proxy Environment variables ####
@@ -111,7 +111,7 @@ all:
     #### Fips Security ####
     ## To enable Fips for added security, uncomment the below line.
     ## Fips only works with ssl_enabled: true and confluent_server_enabled: true
-    # fips_enabled: true
+    fips_enabled: true
 
     #### Configuring Multiple Listeners ####
     ## CP-Ansible will configure two listeners on the broker: an internal listener for the broker to communicate and an external for the components and other clients.

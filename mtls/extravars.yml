@@ -1,0 +1,12 @@
+ksql_packages:
+  - confluent-common
+  - confluent-rest-utils
+  - confluent-metadata-service
+  - "{{ kafka_broker_main_package }}"
+  - confluent-ksql
+  - confluent-security
+ksql:
+  config_file: "/etc/ksql/ksql-server.properties"
+  log4j_file: "/etc/ksql/ksql-server_log4j.properties"
+  jaas_file: "/etc/ksql/ksql-server_jaas.conf"
+ksql_service_name: confluent-ksql
