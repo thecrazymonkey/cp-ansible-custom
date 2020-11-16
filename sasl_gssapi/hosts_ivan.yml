@@ -118,7 +118,7 @@ all:
         requireClientAuthScheme: sasl 
     #     initLimit: 6
     #     syncLimit: 3
-    zookeeper_custom_java_args: "-Dzookeeper.kerberos.removeHostFromPrincipal=true -Dzookeeper.kerberos.removeRealmFromPrincipal=true"
+      zookeeper_custom_java_args: "-Dzookeeper.kerberos.removeHostFromPrincipal=true -Dzookeeper.kerberos.removeRealmFromPrincipal=true"
     kafka_broker:
       properties:
         num.io.threads: 8

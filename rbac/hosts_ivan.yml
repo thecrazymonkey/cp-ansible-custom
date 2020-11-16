@@ -5,9 +5,14 @@ all:
     ansible_connection: ssh
     ansible_user: centos
     ansible_become: true
-    cloud_vendor: aws
 #    ansible_ssh_private_key_file: /tmp/certs/ssh_priv.pem
     redhat_java_package_name: java-11-openjdk
+    #### Setting Proxy Environment variables ####
+    ## To set proxy env vars for the duration of playbook run, uncomment below block and set as necessary
+    # proxy_env:
+    #   http_proxy: http://proxy.example.com:8080
+    #   https_proxy: http://proxy.example.com:8080
+    #   no_proxy: http://proxy.example.com:8080
 
     #### SASL Authentication Configuration ####
     ## By default there will be no SASL Authentication
@@ -17,6 +22,12 @@ all:
     # sasl_protocol: scram
     ## For SASL/GSSAPI uncomment this line and see Kerberos Configuration properties below
     # sasl_protocol: kerberos
+
+   #### Zookeeper SASL Authentication ####
+    ## Zookeeper can have Kerberos (GSSAPI) or Digest-MD5 SASL Authentication
+    ## By default when sasl_protocol = kerberos, zookeeper will also use sasl kerberos. It can  be configured with:
+    ## When a mechanism is selected, zookeeper.set.acl=true is added to kafka's server.properties. Note: property not added when using mTLS, set manually with Custom Properties
+    zookeeper_sasl_protocol: digest
 
     #### Kerberos Configuration ####
     ## Applicable when sasl_protocol is kerberos
@@ -39,34 +50,43 @@ all:
     ## As well as the signed certificate path and the key for that certificate for each host.
     ## These will need to be set for the correct host
     # ssl_custom_certs: true
-    # ssl_ca_cert_filepath: "/tmp/certs/ca.crt"
-    # ssl_signed_cert_filepath: "/tmp/certs/{{inventory_hostname}}-signed.crt"
-    # ssl_key_filepath: "/tmp/certs/{{inventory_hostname}}-key.pem"
+    # ssl_custom_certs_remote_src: true # set to true if key crt and ca file already on hosts, file paths must still be set
+    # ssl_ca_cert_filepath: "/tmp/certs/ca.crt" # Can be a bundle of ca certs to be included in truststore
+    # ssl_signed_cert_filepath: "/tmp/certs/{{inventory_hostname}}-signed.crt" # Can be a full chain of certs
+     # ssl_key_filepath: "/tmp/certs/{{inventory_hostname}}-key.pem"
     # ssl_key_password: <password for key for each host, will be inputting in the form -passin pass:{{ssl_key_password}} >
     ## Option 2: Custom Keystores and Truststores
     ## CP-Ansible can move keystores/truststores to their corresponding hosts and configure the components to use them. Set These vars
     ssl_provided_keystore_and_truststore: true
-    ssl_keystore_filepath: "~/playground/ssl-certs/{{inventory_hostname}}.keystore.jks"
+    ssl_keystore_filepath: "~/playground/aws/kafka-keystore.jks"
     ssl_keystore_key_password: test1234
     ssl_keystore_store_password: test1234
-    ssl_truststore_filepath: "~/playground/ssl-certs/{{inventory_hostname}}.truststore.jks"
+    ssl_truststore_filepath: "~/playground/aws/kafka-truststore.jks"
     ssl_truststore_password: test1234
     ssl_truststore_ca_cert_alias: caroot
+
+    #### Zookeeper TLS Configuration ####
+    ## Zookeeper can also have TLS Encryption and mTLS Authentication
+    ## For backwards compatibility both will be turned off by default, even if ssl_enabled is set to true
+    ## To enable TLS encryption and mTLS authentication uncomment these respectively
+    zookeeper_ssl_enabled: true
+    zookeeper_ssl_mutual_auth_enabled: true
 
     #### Certificate Regeneration ####
     ## When using self signed certificates, each playbook run will regenerate the CA, to turn this off, uncomment this line:
     # regenerate_ca: false
-    ## By default, if keystore/truststore files exists for a component, the playbook will not recreate them
-    ## To recreate the keystores and truststores uncomment this line:
-    # regenerate_keystore_and_truststore: true
+    ## By default, the playbook will recreate them keystores and truststores on each run,
+    ## To prevent this, uncomment this line:
+    regenerate_keystore_and_truststore: false
 
     #### Monitoring Configuration ####
     ## Jolokia is enabled by default. The Jolokia jar gets pulled from the internet and enabled on all the components
+    ## If you plan to use the upgrade playbooks, it is recommended to leave jolokia enabled because kafka broker health checks depend on jolokias metrics
     ## To disable, uncomment this line:
     jolokia_enabled: true
     ## During setup, the hosts will download the jolokia agent jar from Maven. To update that jar download set this var
     # jolokia_jar_url: http://<inteneral-server>/jolokia-jvm-1.6.2-agent.jar
-    ## JMX Exporter is disabled by default. When enabled, JMX Exporter jar will be pulled from the Internet and enabled on the broker *only*.
+    ## JMX Exporter is disabled by default. When enabled, JMX Exporter jar will be pulled from the Internet and enabled on the broker and zookeeper *only*.
     ## To enable, uncomment this line:
     jmxexporter_enabled: true
     ## To update that jar download set this var
@@ -100,7 +120,7 @@ all:
     ## Fips only works with ssl_enabled: true and confluent_server_enabled: true
     # fips_enabled: true
 
-    #### Configuring Different Security on both Listeners ####
+     #### Configuring Multiple Listeners ####
     ## CP-Ansible will configure two listeners on the broker: an internal listener for the broker to communicate and an external for the components and other clients.
     ## If you only need one listener uncomment this line:
     # kafka_broker_configure_additional_brokers: false
@@ -108,13 +128,13 @@ all:
     ## To configure different security settings on the internal and external listeners set the following variables:
     kafka_broker_custom_listeners:
 #      internal:
-#        name: INTERNAL
+#        name: BROKER
 #        port: 9091
 #        ssl_enabled: true
 #        ssl_mutual_auth_enabled: true
 #        sasl_protocol: none
 #      external:
-#        name: EXTERNAL
+#        name: INTERNAL
 #        port: 9092
 #        ssl_enabled: true
 #        ssl_mutual_auth_enabled: true
@@ -124,8 +144,8 @@ all:
         name: CLIENT
         port: 9093
         ssl_enabled: true
-        ssl_mutual_auth_enabled: true
-        sasl_protocol: none
+        ssl_mutual_auth_enabled: false
+        sasl_protocol: scram
 #      plain:
 #        name: PLAIN
 #        port: 9094
@@ -172,12 +192,17 @@ all:
     # token_services_public_pem_file: /path/to/public.pem
     # token_services_private_pem_file: /path/to/tokenKeypair.pem
     # mds_acls_enabled: false #to turn off mds based acls, they are on by default if rbac is on
-    # mds_ssl_enabled: true/false #defaults to whatever ssl_enabled var is set to
+    mds_ssl_enabled: true #defaults to whatever ssl_enabled var is set to
     mds_ssl_mutual_auth_enabled: false #defaults to whatever ssl_mutual_auth_enabled var is set to
     ## Allow the playbooks to configure additional users as system admins on the platform, set the list below
     # rbac_component_additional_system_admins:
-    #   - kafka1.ivan.aws.ps.confluent.io
+    #   - kafka1.ivan.ps.confluent.io
     #   - user2
+    ## By default the Confluent CLI will be installed on each host, to stop this download set:
+    # confluent_cli_download_enabled: false
+    ## CLI will be downloaded from Confluent's webservers, to customize the location of the binary set:
+    # confluent_cli_custom_download_url: <URL to custom webserver hosting for confluent cli>
+
 
     ## To set custom properties for each service
     ## Find property options in the Confluent Documentation
@@ -189,13 +214,15 @@ all:
       properties:
         num.io.threads: 8
         num.network.threads: 3
+        confluent.metadata.server.openapi.enable: true
+        confluent.support.metrics.enable: false
     # schema_registry:
     #   properties:
     #     key: val
-    control_center:
-      properties:
-        confluent.controlcenter.deprecated.views.enable: true
-        confluent.controlcenter.ui.autoupdate.enable: true
+#    control_center:
+#      properties:
+#        confluent.controlcenter.deprecated.views.enable: true
+#        confluent.controlcenter.ui.autoupdate.enable: true
     # kafka_connect:
     #   properties:
     #     key: val
@@ -211,8 +238,12 @@ all:
     bandwidth_bps: 1000000000
     tuned_buffer_size: "{{ (bandwidth_bps*latency_rtt_ms/1000/8)|int}}"
 zookeeper:
+  ## To configure Zookeeper to run as a custom user, uncomment below
+  #  vars:
+  #   zookeeper_user: custom-user
+  #   zookeeper_group: custom-group
   hosts:
-    zk[1:3].ivan.aws.ps.confluent.io:
+    zk[1:3].ivan.ps.confluent.io:
       ## By default the first host will get zookeeper id=1, second gets id=2. Set zookeeper_id to customize
       # zookeeper_id: 2
 
@@ -223,6 +254,16 @@ zookeeper:
       # zookeeper_id: 3
     # ip-172-31-34-231.us-east-2.compute.internal:
       # zookeeper_id: 1
+  vars:
+    ssl_provided_keystore_and_truststore: true
+    ssl_keystore_filepath: "/Users/ikunz/playground/aws/zookeeper-keystore.jks"
+    ssl_keystore_key_password: test1234
+    ssl_keystore_store_password: test1234
+    ssl_truststore_filepath: "/Users/ikunz/playground/aws/zookeeper-truststore.jks"
+    ssl_truststore_password: test1234
+    ssl_truststore_ca_cert_alias: caroot
+#    reconfigEnabled: true
+
 kafka_broker:
   ## To apply variables specifically to the hosts within kafka_broker group, you can add a vars block like below
   vars:
@@ -241,53 +282,115 @@ kafka_broker:
     ldap_config: |
       ldap.java.naming.factory.initial=com.sun.jndi.ldap.LdapCtxFactory
       ldap.com.sun.jndi.ldap.read.timeout=3000
-      ldap.java.naming.provider.url=ldap://pes1.ivan.aws.ps.confluent.io:389
+      ldap.java.naming.provider.url=ldap://pes1.ivan.ps.confluent.io:389
       ldap.java.naming.security.principal=cn=admin,dc=ps,dc=confluent,dc=io
       ldap.java.naming.security.credentials=admin
       ldap.java.naming.security.authentication=simple
       ldap.search.mode=GROUPS
       ldap.user.search.base=ou=users,dc=ps,dc=confluent,dc=io
-      ldap.group.search.base=ou=groups,dc=ps,dc=confluent,dc=io
       ldap.user.name.attribute=uid
-      ldap.user.memberof.attribute.pattern=CN=(.*),ou=users,dc=ps,dc=confluent,dc=io
+      ldap.user.object.class=inetOrgPerson
+      ldap.user.memberof.attribute.pattern=cn=(.*),ou=users,dc=ps,dc=confluent,dc=io
+      ldap.group.search.base=ou=groups,dc=ps,dc=confluent,dc=io
       ldap.group.name.attribute=cn
       ldap.group.member.attribute=memberUid
-      ldap.group.member.attribute.pattern=CN=(.*),ou=users,dc=ps,dc=confluent,dc=io
-      ldap.user.object.class=inetOrgPerson
+      ldap.group.member.attribute.pattern=cn=(.*),ou=users,dc=ps,dc=confluent,dc=io
+      ldap.group.object.class=posixGroup
+                                          
   hosts:
-    kafka1.ivan.aws.ps.confluent.io:
+    kafka1.ivan.ps.confluent.io:
       broker_id: 1
-    kafka2.ivan.aws.ps.confluent.io:
+      kafka_broker:
+        properties:
+          broker.rack: use-east
+          replica.selector.class: org.apache.kafka.common.replica.RackAwareReplicaSelector
+
+    kafka2.ivan.ps.confluent.io:
       broker_id: 2
-    kafka3.ivan.aws.ps.confluent.io:
+      kafka_broker:
+        properties:
+          broker.rack: us-central
+          replica.selector.class: org.apache.kafka.common.replica.RackAwareReplicaSelector
+
+    kafka3.ivan.ps.confluent.io:
       broker_id: 3
     # ip-172-31-34-246.us-east-2.compute.internal:
       ## By default the first host will get broker id=1, second gets id=2. Set broker_id to customize
       # broker_id: 3
+
       ## Properties can also be applied on a host by host basis.
       ## In the below example we configure a Multi-Region Clusters by setting the following properties on each host:
-      # kafka_broker:
-      #   properties:
-      #     broker.rack: us-east-1d
-      #     replica.selector.class: org.apache.kafka.common.replica.RackAwareReplicaSelector
+      kafka_broker:
+        properties:
+          broker.rack: us-west
+          replica.selector.class: org.apache.kafka.common.replica.RackAwareReplicaSelector
 
       ## For kerberos sasl protocol, EACH host will need these two variables:
       # kafka_broker_kerberos_keytab_path: <The path on ansible host to keytab file, eg. /tmp/keytabs/ip-172-31-34-246.us-east-2.compute.internal>
       # kafka_broker_kerberos_principal: <The principal configured in kdc server, eg. kafka/ip-172-31-34-246.us-east-2.compute.internal@REALM.EXAMPLE.COM>
     # ip-172-31-37-15.us-east-2.compute.internal:
       # broker_id: 2
-    # ip-172-31-34-231.us-east-2.compute.internal:
-      # broker_id: 1
+      # kafka_broker:
+      #   properties:
+      #     broker.rack: us-east-1a
+      #     replica.selector.class: org.apache.kafka.common.replica.RackAwareReplicaSelector      # broker_id: 1
+      
 schema_registry:
   ## To configure Schema Registry to run as a custom user, uncomment below
   # vars:
   #   schema_registry_user: custom-user
   #   schema_registry_group: custom-group
   hosts:
-    kafka3.ivan.aws.ps.confluent.io:
+    kafka3.ivan.ps.confluent.io:
       ## For kerberos sasl protocol, EACH host will need these two variables:
       # schema_registry_kerberos_keytab_path: <The path on ansible host to keytab file, eg. /tmp/keytabs/schemaregistry-ip-172-31-34-246.us-east-2.compute.internal
       # schema_registry_kerberos_principal: The principal configured in kdc server ex: schemaregistry/ip-172-31-34-246.us-east-2.compute.internal@REALM.EXAMPLE.COM>
+
+kafka_rest:
+  ## To configure Rest Proxy to run as a custom user, uncomment below
+  # vars:
+  #   kafka_rest_user: custom-user
+  #   kafka_rest_group: custom-group
+  hosts:
+    kafka1.ivan.ps.confluent.io:
+      ## For kerberos sasl protocol, EACH host will need these two variables:
+      # kafka_rest_kerberos_keytab_path: <The path on ansible host to keytab file, eg. /tmp/keytabs/restproxy-ip-172-31-34-246.us-east-2.compute.internal
+      # kafka_rest_kerberos_principal: The principal configured in kdc server ex: restproxy/ip-172-31-34-246.us-east-2.compute.internal@REALM.EXAMPLE.COM>
+ksql:
+  ## To configure KSQL to run as a custom user, uncomment below
+  # vars:
+  #   ksql_user: custom-user
+  #   ksql_group: custom-group
+  hosts:
+    kafka3.ivan.ps.confluent.io:
+      ## For kerberos sasl protocol, EACH host will need these two variables:
+      # ksql_kerberos_keytab_path: <The path on ansible host to keytab file, eg. /tmp/keytabs/ksql-ip-172-31-37-15.us-east-2.compute.internal
+      # ksql_kerberos_principal: The principal configured in kdc server ex: ksql/ip-172-31-37-15.us-east-2.compute.internal@REALM.EXAMPLE.COM>
+
+#### To configure multiple ksql clusters, make use of child groups and follow the example below
+## Note: There can only be one ksql group, so comment out above section, if configuring multiple ksql clusters
+## Decide on a name each ksql cluster (that is not 'ksql') and use that as ansible group name, this is how the cluster will be named in c3
+# ksql1:
+#   vars:
+#     # The below is a mandatory variable that must be unique for each ksql cluster.
+#     # The service id should end in an underscore by convention
+#     ksql_service_id: ksql1_
+#   hosts:
+#     ip-172-31-34-15.us-east-2.compute.internal:
+#     ip-172-31-37-16.us-east-2.compute.internal:
+#
+# ksql2:
+#   vars:
+#     ksql_service_id: ksql2_
+#   hosts:
+#     ip-172-31-34-17.us-east-2.compute.internal:
+#     ip-172-31-37-18.us-east-2.compute.internal:
+#
+# ksql:
+#   children:
+#     ksql1:
+#     ksql2:
+
 kafka_connect:
   ## To configure Connect to run as a custom user, uncomment below
   # vars:
@@ -320,7 +423,7 @@ kafka_connect:
   # kafka_connect_secret_registry_enabled: false
   #
   hosts:
-    kafka2.ivan.aws.ps.confluent.io:
+    kafka2.ivan.ps.confluent.io:
 
       ## For kerberos sasl protocol, EACH host will need these two variables:
       # kafka_connect_kerberos_keytab_path: <The path on ansible host to keytab file, eg. /tmp/keytabs/connect-ip-172-31-34-246.us-east-2.compute.internal
@@ -347,56 +450,13 @@ kafka_connect:
 #     syslog:
 #     elastic:
 
-#kafka_rest:
-  ## To configure Rest Proxy to run as a custom user, uncomment below
-  # vars:
-  #   kafka_rest_user: custom-user
-  #   kafka_rest_group: custom-group
- #  hosts:
-#    ip-172-31-34-246.us-east-2.compute.internal:
-      ## For kerberos sasl protocol, EACH host will need these two variables:
-      # kafka_rest_kerberos_keytab_path: <The path on ansible host to keytab file, eg. /tmp/keytabs/restproxy-ip-172-31-34-246.us-east-2.compute.internal
-      # kafka_rest_kerberos_principal: The principal configured in kdc server ex: restproxy/ip-172-31-34-246.us-east-2.compute.internal@REALM.EXAMPLE.COM>
-ksql:
-  ## To configure KSQL to run as a custom user, uncomment below
-  # vars:
-  #   ksql_user: custom-user
-  #   ksql_group: custom-group
-  hosts:
-    kafka3.ivan.aws.ps.confluent.io:
-      ## For kerberos sasl protocol, EACH host will need these two variables:
-      # ksql_kerberos_keytab_path: <The path on ansible host to keytab file, eg. /tmp/keytabs/ksql-ip-172-31-37-15.us-east-2.compute.internal
-      # ksql_kerberos_principal: The principal configured in kdc server ex: ksql/ip-172-31-37-15.us-east-2.compute.internal@REALM.EXAMPLE.COM>
-#### To configure multiple ksql clusters, make use of child groups and follow the example below
-## Note: There can only be one ksql group, so comment out above section, if configuring multiple ksql clusters
-## Decide on a name each ksql cluster (that is not 'ksql') and use that as ansible group name, this is how the cluster will be named in c3
-# ksql1:
-#   vars:
-#     # The below is a mandatory variable that must be unique for each ksql cluster.
-#     # The service id should end in an underscore by convention
-#     ksql_service_id: ksql1_
-#   hosts:
-#     ip-172-31-34-15.us-east-2.compute.internal:
-#     ip-172-31-37-16.us-east-2.compute.internal:
-#
-# ksql2:
-#   vars:
-#     ksql_service_id: ksql2_
-#   hosts:
-#     ip-172-31-34-17.us-east-2.compute.internal:
-#     ip-172-31-37-18.us-east-2.compute.internal:
-#
-# ksql:
-#   children:
-#     ksql1:
-#     ksql2:
 control_center:
   ## To configure Control Center to run as a custom user, uncomment below
   # vars:
   #   control_center_user: custom-user
   #   control_center_group: custom-group
   hosts:
-    kafka1.ivan.aws.ps.confluent.io:
+    kafka4.ivan.ps.confluent.io:
       ## For kerberos sasl protocol, EACH host will need these two variables:
       # control_center_kerberos_keytab_path: <The path on ansible host to keytab file, eg. /tmp/keytabs/controlcenter-ip-172-31-37-15.us-east-2.compute.internal
       # control_center_kerberos_principal: The principal configured in kdc server ex: controlcenter/ip-172-31-37-15.us-east-2.compute.internal@REALM.EXAMPLE.COM>

@@ -1,0 +1,13 @@
+---
+- name: Copy ZK snapshot
+  gather_facts: Yes
+  hosts: all
+  tasks:
+    - name: Copy snapshot file
+      copy:
+        src: "./files/snapshot.0"
+        dest: "/var/lib/zookeeper/version-2"
+        force: no
+        mode: 0755
+        owner: "{{ service_user }}"
+        group: "{{ service_group }}"

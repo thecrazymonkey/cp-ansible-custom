@@ -1,5 +1,5 @@
 ---
-- hosts: kafka3.ivan.aws.ps.confluent.io
+- hosts: kafka1.ivan.ps.confluent.io
   tags:
     - prometheus
   vars:

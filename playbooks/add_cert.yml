@@ -1,0 +1,15 @@
+---
+- name: Add ca cert  to all hosts
+  gather_facts: No
+  hosts: kafka_broker,control_center
+  become: yes
+
+  tasks:
+    - name: Add key to all hosts
+      copy:
+        dest: /etc/pki/ca-trust/source/anchors/
+        src: /var/ssl/private/ca.crt
+        remote_src: true
+    - name: Update ca store
+      command:
+        cmd: update-ca-trust

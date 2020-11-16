@@ -10,8 +10,9 @@ kafka_broker_sysctl:
   net.ipv4.tcp_wmem: '4096 212992 {{tuned_buffer_size}}'
 kafka_broker:  
   properties:
-    advertised.listeners: "INTERNAL://{{inventory_hostname}}:9091,EXTERNAL://{{inventory_hostname}}:9093"
-    authorizer.class.name: "kafka.security.auth.SimpleAclAuthorizer"
-    super.users: "User:admin;User:control_center;User:schema_registry;User:kafka_connect;User:ksql"
+    controlled.shutdown.enable: true
+#    advertised.listeners: "INTERNAL://{{inventory_hostname}}:9091,EXTERNAL://{{inventory_hostname}}:9093"
+#    authorizer.class.name: "kafka.security.auth.SimpleAclAuthorizer"
+#    super.users: "User:admin;User:control_center;User:schema_registry;User:kafka_connect;User:ksql"
     socket.receive.buffer.bytes: "{{tuned_buffer_size}}"
     socket.send.buffer.bytes: "{{tuned_buffer_size}}"

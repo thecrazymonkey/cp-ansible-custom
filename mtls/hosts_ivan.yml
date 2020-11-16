@@ -1,7 +1,7 @@
 all:
   vars:
-#   confluent_repo_version: 5.4
-#   confluent_package_version: 5.4.2
+#    confluent_repo_version: 5.4
+#    confluent_package_version: 5.4.2
     ansible_connection: ssh
     ansible_user: centos
     ansible_become: true
@@ -27,7 +27,7 @@ all:
     #### Zookeeper SASL Authentication ####
     ## Zookeeper can have Kerberos (GSSAPI) or Digest-MD5 SASL Authentication
     ## By default when sasl_protocol = kerberos, zookeeper will also use sasl kerberos. It can  be configured with:
-    zookeeper_sasl_protocol: digest
+    # zookeeper_sasl_protocol: digest
 
     #### Kerberos Configuration ####
     ## Applicable when sasl_protocol is kerberos
@@ -58,12 +58,19 @@ all:
     ## Option 2: Custom Keystores and Truststores
     ## CP-Ansible can move keystores/truststores to their corresponding hosts and configure the components to use them. Set These vars
     ssl_provided_keystore_and_truststore: true
-    ssl_keystore_filepath: "~/playground/ssl-certs/{{inventory_hostname}}.keystore.jks"
+    ssl_keystore_filepath: "/Users/ikunz/playground/ssl-certs/{{inventory_hostname}}.keystore.jks"
     ssl_keystore_key_password: test1234
     ssl_keystore_store_password: test1234
-    ssl_truststore_filepath: "~/playground/ssl-certs/{{inventory_hostname}}.truststore.jks"
+    ssl_truststore_filepath: "/Users/ikunz/playground/ssl-certs/{{inventory_hostname}}.truststore.jks"
     ssl_truststore_password: test1234
     ssl_truststore_ca_cert_alias: caroot
+
+    #### Zookeeper TLS Configuration ####
+    ## Zookeeper can also have TLS Encryption and mTLS Authentication
+    ## For backwards compatibility both will be turned off by default, even if ssl_enabled is set to true
+    ## To enable TLS encryption and mTLS authentication uncomment these respectively
+    zookeeper_ssl_enabled: true
+    zookeeper_ssl_mutual_auth_enabled: false
 
     #### Certificate Regeneration ####
     ## When using self signed certificates, each playbook run will regenerate the CA, to turn this off, uncomment this line:
@@ -101,7 +108,7 @@ all:
 
     #### Confluent Server vs Confluent Kafka ####
     ## Confluent Server will be installed by default, to install confluent-kafka instead, uncomment the below
-    # confluent_server_enabled: false
+    confluent_server_enabled: true
 
     #### Schema Validation ####
     ## Schema Validation with the kafka configuration is disabled by default. To enable uncomment this line:
@@ -111,7 +118,7 @@ all:
     #### Fips Security ####
     ## To enable Fips for added security, uncomment the below line.
     ## Fips only works with ssl_enabled: true and confluent_server_enabled: true
-    fips_enabled: true
+    fips_enabled: false
 
     #### Configuring Multiple Listeners ####
     ## CP-Ansible will configure two listeners on the broker: an internal listener for the broker to communicate and an external for the components and other clients.
@@ -136,14 +143,14 @@ all:
       client:
         name: CLIENT
         port: 9093
+#        ssl_enabled: true
+#        ssl_mutual_auth_enabled: true
+        sasl_protocol: scram
+      plain:
+        name: PLAINSSL
+        port: 9094
         ssl_enabled: true
-        ssl_mutual_auth_enabled: true
-        sasl_protocol: none
-#      plain:
-#        name: PLAIN
-#        port: 9094
-#        ssl_enabled: false
-#        ssl_mutual_auth_enabled: false
+        ssl_mutual_auth_enabled: false
 #        sasl_protocol: none
 
     #### Creating Connectors ####
@@ -240,14 +247,31 @@ zookeeper:
       # zookeeper_id: 3
     # ip-172-31-34-231.us-east-2.compute.internal:
       # zookeeper_id: 1
+  vars:
+    ssl_provided_keystore_and_truststore: true
+    ssl_keystore_filepath: "/Users/ikunz/playground/ssl-certs/{{inventory_hostname}}.keystore.jks"
+    ssl_keystore_key_password: test1234
+    ssl_keystore_store_password: test1234
+    ssl_truststore_filepath: "/Users/ikunz/playground/ssl-certs/{{inventory_hostname}}.truststore.jks"
+    ssl_truststore_password: test1234
+    ssl_truststore_ca_cert_alias: caroot
 kafka_broker:
   hosts:
-      kafka1.ivan.ps.confluent.io:
-        broker_id: 1
-      kafka2.ivan.ps.confluent.io:
-        broker_id: 2
-      kafka3.ivan.ps.confluent.io:
-        broker_id: 3
+    kafka1.ivan.ps.confluent.io:
+      broker_id: 1
+    kafka2.ivan.ps.confluent.io:
+      broker_id: 2
+    kafka3.ivan.ps.confluent.io:
+      broker_id: 3
+  # vars:
+  #  kafka_broker_custom_java_args: "-Dsun.security.krb5.debug=true"
+  #  kafka_broker_service_environment_overrides:
+  #    JMX_PORT: 9999
+  #    KAFKA_HEAP_OPTS: -Xmx2G -Xms2G
+  #    KAFKA_JMX_OPTS: "-Dcom.sun.management.jmxremote.rmi.port=9999 -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false  -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname={{inventory_hostname}} -Dcom.sun.management.jmxremote.local.only=false"
+  #  kafka_broker:
+  #    appender_log_path: /var/log/kafka
+
     # ip-172-31-34-246.us-east-2.compute.internal:
       ## By default the first host will get broker id=1, second gets id=2. Set broker_id to customize
       # broker_id: 3
@@ -272,21 +296,25 @@ kafka_connect:
       ## For kerberos sasl protocol, EACH host will need these two variables:
       # kafka_connect_kerberos_keytab_path: <The path on ansible host to keytab file, eg. /tmp/keytabs/connect-ip-172-31-34-246.us-east-2.compute.internal
       # kafka_connect_kerberos_principal: The principal configured in kdc server ex: connect/ip-172-31-34-246.us-east-2.compute.internal@REALM.EXAMPLE.COM>
-#kafka_rest:
-#  hosts:
-#    ip-172-31-34-246.us-east-2.compute.internal:
+kafka_rest:
+  hosts:
+    kafka1.ivan.ps.confluent.io:
       ## For kerberos sasl protocol, EACH host will need these two variables:
       # kafka_rest_kerberos_keytab_path: <The path on ansible host to keytab file, eg. /tmp/keytabs/restproxy-ip-172-31-34-246.us-east-2.compute.internal
       # kafka_rest_kerberos_principal: The principal configured in kdc server ex: restproxy/ip-172-31-34-246.us-east-2.compute.internal@REALM.EXAMPLE.COM>
 ksql:
+  vars:
+    ksql_ssl_enabled: false
   hosts:
     kafka3.ivan.ps.confluent.io:
       ## For kerberos sasl protocol, EACH host will need these two variables:
       # ksql_kerberos_keytab_path: <The path on ansible host to keytab file, eg. /tmp/keytabs/ksql-ip-172-31-37-15.us-east-2.compute.internal
       # ksql_kerberos_principal: The principal configured in kdc server ex: ksql/ip-172-31-37-15.us-east-2.compute.internal@REALM.EXAMPLE.COM>
 control_center:
+  vars:
+    control_center_ssl_enabled: false
   hosts:
-    kafka1.ivan.ps.confluent.io:
+    kafka4.ivan.ps.confluent.io:
       ## For kerberos sasl protocol, EACH host will need these two variables:
       # control_center_kerberos_keytab_path: <The path on ansible host to keytab file, eg. /tmp/keytabs/controlcenter-ip-172-31-37-15.us-east-2.compute.internal
       # control_center_kerberos_principal: The principal configured in kdc server ex: controlcenter/ip-172-31-37-15.us-east-2.compute.internal@REALM.EXAMPLE.COM>

@@ -1,0 +1,63 @@
+- name: Kafka Broker - Host Ordering
+  hosts: kafka_broker
+  # Running serial=1 because add_host has problems
+  # https://stackoverflow.com/questions/42106527/ansible-how-to-call-module-add-host-for-all-hosts-of-the-play
+  serial: 1
+  tasks:
+    - name: Create Ordered Kafka Broker Groups
+      import_tasks: tasks/create_ordered_kafka_groups.yml
+      vars:
+        controller_group: controller
+        non_controller_group: non_controllers
+
+- name: Kafka Broker Restart - Host Ordering
+  hosts: kafka_broker
+  serial: 1
+  tasks:
+    # Sets active_controller_count var for each host
+    - name: Create Ordered Kafka Broker Groups
+      import_tasks: tasks/create_ordered_kafka_groups.yml
+      vars:
+        controller_group: controller
+        non_controller_group: non_controllers
+
+    - name: Get Package Facts
+      package_facts:
+        manager: auto
+
+    - name: Add host to Non Controller Group
+      add_host:
+        name: "{{ inventory_hostname }}"
+        group: upgrade_non_controllers
+      delegate_to: localhost
+      when:
+        - active_controller_count|int == 0
+
+    - name: Add host to Controller Group
+      add_host:
+        name: "{{ inventory_hostname }}"
+        group: upgrade_controller
+      delegate_to: localhost
+      when:
+        - active_controller_count|int == 1
+
+- name: Kafka Broker Restart
+  # Putting controller group last here with serial=1 has the controller as the last host to run
+  hosts: upgrade_non_controllers,upgrade_controller
+  environment: "{{ proxy_env }}"
+  serial: 1
+  tags:
+    - restart
+  tasks:
+    - import_role:
+        name: confluent.variables_handlers
+    - name: Restart Service
+      vars:
+        service_name: "{{ kafka_broker_service_name }}"
+      systemd:
+        name: "{{ service_name }}"
+        state: restarted
+
+    - name: Wait for Under Replicated Partitions on Broker
+      import_tasks: tasks/wait_for_urp.yml
+

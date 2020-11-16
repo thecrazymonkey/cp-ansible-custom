@@ -1,0 +1,82 @@
+- name: Zookeeper Restart - Prep
+  hosts: zookeeper
+  # Running serial=1 because add_host has problems
+  # https://stackoverflow.com/questions/42106527/ansible-how-to-call-module-add-host-for-all-hosts-of-the-play
+  serial: 1
+  tags:
+    - prep
+  tasks:
+    - import_role:
+        name: confluent.variables_handlers
+
+    - name: Zookeeper is Running
+      systemd:
+        name: "{{zookeeper_service_name}}"
+        state: started
+
+    - name: Zookeeper Health Check
+      import_role:
+        name: confluent.zookeeper
+        tasks_from: health_check.yml
+
+    - name: Get Package Facts
+      package_facts:
+        manager: auto
+
+    - name: Get Leader/Follower
+      shell: "{{zookeeper_health_check_command}} | grep Mode"
+      args:
+        executable: /bin/bash
+      register: leader_query
+
+    - name: Add host to Follower Group
+      add_host:
+        name: "{{ inventory_hostname }}"
+        group: upgrade_zookeeper_followers
+      delegate_to: localhost
+      when:
+        - '"follower" in leader_query.stdout'
+
+    - name: Add host to Leader Group
+      add_host:
+        name: "{{ inventory_hostname }}"
+        group: upgrade_zookeeper_leader
+      delegate_to: localhost
+      when:
+        - '"leader" in leader_query.stdout'
+
+    - debug:
+        msg: "Leader: {{inventory_hostname}}"
+      when: '"leader" in leader_query.stdout'
+
+- name: Zookeeper Restart
+  # Putting leader group last here with serial=1 so the leader runs last
+  hosts: upgrade_zookeeper_followers,upgrade_zookeeper_leader
+  environment: "{{ proxy_env }}"
+  serial: 1
+  tags:
+    - restart
+  tasks:
+    - import_role:
+        name: confluent.variables_handlers
+
+    - name: Stop Service
+      systemd:
+        name: "{{ zookeeper_service_name }}"
+        state: stopped
+
+    - name: Wait for Zookeeper Status on Another Zookeeper Node
+      import_role:
+        name: confluent.zookeeper
+        tasks_from: health_check.yml
+      delegate_to: "{{ groups['zookeeper'] | difference([inventory_hostname]) | first }}"
+
+    - name: Restart Service
+      systemd:
+        name: "{{ zookeeper_service_name }}"
+        state: restarted
+
+    - name: Zookeeper Health Check
+      import_role:
+        name: confluent.zookeeper
+        tasks_from: health_check.yml

@@ -1,0 +1,52 @@
+---
+- name: Prepare upgrade
+  gather_facts: Yes
+  hosts: all
+  vars:
+    jolokia_version: 1.6.2
+    jolokia_jar_url: "http://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-jvm/{{jolokia_version}}/jolokia-jvm-{{jolokia_version}}-agent.jar"
+    
+  tasks:
+    - name: Create Jolokia directory
+      file:
+        path: "/home/{{ service_user }}/jolokia"
+        state: directory
+        mode: 0755
+        owner: "{{ service_user }}"
+        group: "{{ service_user }}"
+      when: jolokia_enabled|bool
+    - name: Download Jolokia Jar
+      get_url:
+        url: "{{ jolokia_jar_url }}"
+        dest: "/home/{{ service_user }}/jolokia"
+        mode: 0755
+        owner: "{{ service_user }}"
+        group: "{{ service_user }}"
+      when:
+        - jolokia_enabled|bool
+        - not ansible_check_mode
+    - name: Create Override directory
+      file:
+        path: "/etc/systemd/system/{{ service_name }}.d"
+        state: directory
+        mode: 0755
+        owner: "{{ service_user }}"
+        group: "{{ service_user }}"
+    - name: Add service override to all hosts
+      blockinfile:
+        dest: /etc/systemd/system/{{ service_name }}.d/override.conf"
+        state: absent
+        block: |
+          [Service]
+          LimitNOFILE=100000
+        create: yes
+
+    - name: Add jolokia to KAFKA_OPTS
+      replace:
+        path: "/etc/systemd/system/{{ service_name }}"
+        regexp: "^(Environment='KAFKA_OPTS=.*)(')$"
+        replace: '\1 -javaagent:/opt/jolokia/jolokia.jar=port={{ jolokia_port }},host=0.0.0.0\2'
+
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: yes

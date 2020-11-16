@@ -13,7 +13,7 @@ kafka_broker:
     controlled.shutdown.enable: true
 #    advertised.listeners: "INTERNAL://{{inventory_hostname}}:9091,EXTERNAL://{{inventory_hostname}}:9093"
     authorizer.class.name: "kafka.security.auth.SimpleAclAuthorizer"
-    super.users: "User:kafka1.ivan.ps.confluent.io;User:kafka2.ivan.ps.confluent.io;User:kafka3.ivan.ps.confluent.io"
+    super.users: "User:kafka_broker;User:kafka1.ivan.ps.confluent.io;User:kafka2.ivan.ps.confluent.io;User:kafka3.ivan.ps.confluent.io;User:kafka4.ivan.ps.confluent.io"
     ssl.principal.mapping.rules: |
                                       RULE:^CN=(.*?),OU=.*?,O=.*?,L=.*?,ST=.*?,C=.*?$/$1/, \
                                       RULE:^CN=(.*?)$/$1/L, \
