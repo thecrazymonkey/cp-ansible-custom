@@ -1,0 +1,15 @@
+dn: cn=Singhal\, Swati ZK2E84C,ou=users,{{ LDAP_BASE_DN }}
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: shadowAccount
+uid: ZK2E84C
+sn: LookingGlass
+givenName: Singhal
+cn: Singhal\, Swati ZK2E84C
+displayName: Alice LookingGlass
+uidNumber: 10000
+gidNumber: 5000
+userPassword: alice-secret
+gecos: alice
+loginShell: /bin/bash
+homeDirectory: /home/ZK2E84C

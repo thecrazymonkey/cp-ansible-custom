@@ -4,28 +4,60 @@
     - prometheus
   vars:
     kafka_broker_jmxexporter_port: 8080
-    zookeeper_jmxexporter_port: 8080
+    zookeeper_jmxexporter_port: 8079
+    kafka_connect_jmxexporter_port: 8077
+    ksql_jmxexporter_port: 8076
+    schema_registry_jmxexporter_port: 8078
+#    kafka_rest_jmxexporter_port: 8075
     prometheus_scrape_configs:
       - job_name: "prometheus"
-        scrape_interval: 5s
+        scrape_interval: 30s
         metrics_path: "{{ prometheus_metrics_path }}"
         static_configs:
           - targets:
               - "{{ ansible_fqdn | default(ansible_host) | default('localhost') }}:9090"
       - job_name: "kafka"
         metrics_path: "{{ prometheus_metrics_path }}"
-        scrape_interval: 5s
+        scrape_interval: 30s
         static_configs:
           - targets: "[{% for host in groups['kafka_broker'] %}{% if loop.index > 1%},{% endif %}'{{ host }}:{{kafka_broker_jmxexporter_port}}'{% endfor %}]"
             labels:
               env: 'dev'
       - job_name: "zookeeper"
         metrics_path: "{{ prometheus_metrics_path }}"
-        scrape_interval: 5s
+        scrape_interval: 30s
         static_configs:
           - targets: "[{% for host in groups['zookeeper'] %}{% if loop.index > 1%},{% endif %}'{{ host }}:{{zookeeper_jmxexporter_port}}'{% endfor %}]"
             labels:
               env: 'dev'
+      - job_name: "kafka_connect"
+        metrics_path: "{{ prometheus_metrics_path }}"
+        scrape_interval: 30s
+        static_configs:
+          - targets: "[{% for host in groups['kafka_connect'] %}{% if loop.index > 1%},{% endif %}'{{ host }}:{{kafka_connect_jmxexporter_port}}'{% endfor %}]"
+            labels:
+              env: 'dev'
+      - job_name: "schema_registry"
+        metrics_path: "{{ prometheus_metrics_path }}"
+        scrape_interval: 30s
+        static_configs:
+          - targets: "[{% for host in groups['schema_registry'] %}{% if loop.index > 1%},{% endif %}'{{ host }}:{{schema_registry_jmxexporter_port}}'{% endfor %}]"
+            labels:
+              env: 'dev'
+#      - job_name: "kafka_rest"
+#        metrics_path: "{{ prometheus_metrics_path }}"
+#        scrape_interval: 30s
+#        static_configs:
+#          - targets: "[{% for host in groups['kafka_rest'] %}{% if loop.index > 1%},{% endif %}'{{ host }}:{{kafka_rest_jmxexporter_port}}'{% endfor %}]"
+#            labels:
+#              env: 'dev'
+#      - job_name: "ksql"
+#        metrics_path: "{{ prometheus_metrics_path }}"
+#        scrape_interval: 30s
+#        static_configs:
+#          - targets: "[{% for host in groups['ksql'] %}{% if loop.index > 1%},{% endif %}'{{ host }}:{{ksql_jmxexporter_port}}'{% endfor %}]"
+#            labels:
+#              env: 'dev'
   tasks:
   - import_role:
       name: ansible-prometheus

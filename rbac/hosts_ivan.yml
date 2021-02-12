@@ -1,3 +1,4 @@
+---
 all:
   vars:
 #    confluent_repo_version: 5.3
@@ -23,11 +24,11 @@ all:
     ## For SASL/GSSAPI uncomment this line and see Kerberos Configuration properties below
     # sasl_protocol: kerberos
 
-   #### Zookeeper SASL Authentication ####
+    #### Zookeeper SASL Authentication ####
     ## Zookeeper can have Kerberos (GSSAPI) or Digest-MD5 SASL Authentication
     ## By default when sasl_protocol = kerberos, zookeeper will also use sasl kerberos. It can  be configured with:
     ## When a mechanism is selected, zookeeper.set.acl=true is added to kafka's server.properties. Note: property not added when using mTLS, set manually with Custom Properties
-    zookeeper_sasl_protocol: digest
+    # zookeeper_sasl_protocol: digest
 
     #### Kerberos Configuration ####
     ## Applicable when sasl_protocol is kerberos
@@ -61,9 +62,16 @@ all:
     ssl_keystore_filepath: "~/playground/aws/kafka-keystore.jks"
     ssl_keystore_key_password: test1234
     ssl_keystore_store_password: test1234
+    # ssl_keystore_alias: <alias for host specific certificate, only required if multiple certs in provided keystore>
     ssl_truststore_filepath: "~/playground/aws/kafka-truststore.jks"
     ssl_truststore_password: test1234
     ssl_truststore_ca_cert_alias: caroot
+    
+    ksql_ssl_mutual_auth_enabled: false
+    schema_registry_ssl_mutual_auth_enabled: false
+    kafka_rest_ssl_mutual_auth_enabled: false
+    kafka_connect_ssl_mutual_auth_enabled: false
+    mds_ssl_mutual_auth_enabled: false #defaults to whatever ssl_mutual_auth_enabled var is set to
 
     #### Zookeeper TLS Configuration ####
     ## Zookeeper can also have TLS Encryption and mTLS Authentication
@@ -77,13 +85,15 @@ all:
     # regenerate_ca: false
     ## By default, the playbook will recreate them keystores and truststores on each run,
     ## To prevent this, uncomment this line:
-    regenerate_keystore_and_truststore: false
+    # regenerate_keystore_and_truststore: false
 
     #### Monitoring Configuration ####
     ## Jolokia is enabled by default. The Jolokia jar gets pulled from the internet and enabled on all the components
     ## If you plan to use the upgrade playbooks, it is recommended to leave jolokia enabled because kafka broker health checks depend on jolokias metrics
     ## To disable, uncomment this line:
-    jolokia_enabled: true
+    # jolokia_enabled: false
+    ## To copy from control host instead of downloading from remote URL:
+    # jolokia_url_remote: false
     ## During setup, the hosts will download the jolokia agent jar from Maven. To update that jar download set this var
     # jolokia_jar_url: http://<inteneral-server>/jolokia-jvm-1.6.2-agent.jar
     ## JMX Exporter is disabled by default. When enabled, JMX Exporter jar will be pulled from the Internet and enabled on the broker and zookeeper *only*.
@@ -91,6 +101,8 @@ all:
     jmxexporter_enabled: true
     ## To update that jar download set this var
     # jmxexporter_jar_url: http://<internal-server>/jmx_prometheus_javaagent-0.12.0.jar
+    ## To copy from control host instead of downloading from remote URL:
+    # jmxexporter_url_remote: false
 
     #### Custom Yum Repo File (Rhel/Centos) ####
     ## If you are using your own yum repo server to host the packages, in the case of an air-gapped environment,
@@ -192,22 +204,42 @@ all:
     # token_services_public_pem_file: /path/to/public.pem
     # token_services_private_pem_file: /path/to/tokenKeypair.pem
     # mds_acls_enabled: false #to turn off mds based acls, they are on by default if rbac is on
-    mds_ssl_enabled: true #defaults to whatever ssl_enabled var is set to
-    mds_ssl_mutual_auth_enabled: false #defaults to whatever ssl_mutual_auth_enabled var is set to
+    # kafka_broker_rest_ssl_enabled: true/false #defaults to whatever ssl_enabled var is set to
     ## Allow the playbooks to configure additional users as system admins on the platform, set the list below
     # rbac_component_additional_system_admins:
     #   - kafka1.ivan.ps.confluent.io
     #   - user2
-    ## By default the Confluent CLI will be installed on each host, to stop this download set:
+    ####  Configuring Role Based Access Control with a remote MDS ####
+    ## To have CP-Ansible configure Brokers and Components for RBAC with the MDS on a remote Kafka cluster, set these mandatory variables in addition to those listed above:
+    # rbac_enabled: true
+    # external_mds_enabled: true
+    ## The URL for the MDS REST API on your Kafka Cluster hosting MDS
+    # mds_bootstrap_server_urls: http(s)://<mds-broker-hostname>:8090,http(s)://<mds-broker-hostname>:8090
+    ## The URL and Port for the listener on your Kafka Cluster hosting the MDS that you wish to connect to
+    # mds_broker_bootstrap_servers: <mds-broker-hostname><port>,<mds-broker-hostname><port>
+    ## Configure the security settings to match the same listener as defined in the mds_broker_bootstrap_servers
+    # mds_broker_listener:
+    #   ssl_enabled: true <set to false if remote MDS does not use TLS>
+    #   ssl_mutual_auth_enabled: true <set to false if remote MDS doe not use MTLS>
+    #   sasl_protocol: none <set protocol for remote MDS, options are: kerberos, sasl_plain, sasl_scram>
+    ##
+    ## By default the Confluent CLI will be installed on each host *when rbac is enabled*, to stop this download set:
     # confluent_cli_download_enabled: false
     ## CLI will be downloaded from Confluent's webservers, to customize the location of the binary set:
     # confluent_cli_custom_download_url: <URL to custom webserver hosting for confluent cli>
 
+    ## Configuring Telemetry
+    ## Set the below required variables
+    telemetry_enabled: false
+    # telemetry_api_key: XXXXXX
+    # telemetry_api_secret: YYYYYYYYY
+
 
     ## To set custom properties for each service
     ## Find property options in the Confluent Documentation
-    # zookeeper:
-    #   properties:
+    zookeeper:
+      properties:
+          4lw.commands.whitelist: "*"
     #     initLimit: 6
     #     syncLimit: 3
     kafka_broker:
@@ -216,6 +248,7 @@ all:
         num.network.threads: 3
         confluent.metadata.server.openapi.enable: true
         confluent.support.metrics.enable: false
+        confluent.telemetry.enabled: false
     # schema_registry:
     #   properties:
     #     key: val
@@ -242,6 +275,10 @@ zookeeper:
   #  vars:
   #   zookeeper_user: custom-user
   #   zookeeper_group: custom-group
+  #   ## To copy files to zookeeper hosts, set this list below
+  #   zookeeper_copy_files:
+  #     - source_path: /path/to/file.txt
+  #       destination_path: /tmp/file.txt
   hosts:
     zk[1:3].ivan.ps.confluent.io:
       ## By default the first host will get zookeeper id=1, second gets id=2. Set zookeeper_id to customize
@@ -276,6 +313,10 @@ kafka_broker:
   #     datadir:
   #       - /var/lib/kafka/my-data
   #
+  #   ## To enabled Self Balancing Kafka Brokers, uncomment the below lines
+  #   kafka_broker_custom_properties:
+  #     confluent.balancer.enable: "true"
+  #
   ##  To configure LDAP for RBAC enablement, you will need to provide the appropiate properties to connect to your LDAP server
   ##  using the ldap_config varible under the vars block.  The following is an example:
   #
@@ -296,13 +337,16 @@ kafka_broker:
       ldap.group.member.attribute=memberUid
       ldap.group.member.attribute.pattern=cn=(.*),ou=users,dc=ps,dc=confluent,dc=io
       ldap.group.object.class=posixGroup
-                                          
+  #   ## To copy files to kafka broker hosts, set this list below
+  #   kafka_broker_copy_files:
+  #     - source_path: /path/to/file.txt
+  #       destination_path: /tmp/file.txt                                          
   hosts:
     kafka1.ivan.ps.confluent.io:
       broker_id: 1
       kafka_broker:
         properties:
-          broker.rack: use-east
+          broker.rack: us-east
           replica.selector.class: org.apache.kafka.common.replica.RackAwareReplicaSelector
 
     kafka2.ivan.ps.confluent.io:
@@ -340,6 +384,11 @@ schema_registry:
   # vars:
   #   schema_registry_user: custom-user
   #   schema_registry_group: custom-group
+  #
+  #   ## To copy files to schema_registry hosts, set this list below
+  #   schema_registry_copy_files:
+  #     - source_path: /path/to/file.txt
+  #       destination_path: /tmp/file.txt
   hosts:
     kafka3.ivan.ps.confluent.io:
       ## For kerberos sasl protocol, EACH host will need these two variables:
@@ -351,6 +400,11 @@ kafka_rest:
   # vars:
   #   kafka_rest_user: custom-user
   #   kafka_rest_group: custom-group
+  #
+  #   ## To copy files to kafka_rest hosts, set this list below
+  #   kafka_rest_copy_files:
+  #     - source_path: /path/to/file.txt
+  #       destination_path: /tmp/file.txt
   hosts:
     kafka1.ivan.ps.confluent.io:
       ## For kerberos sasl protocol, EACH host will need these two variables:
@@ -358,9 +412,16 @@ kafka_rest:
       # kafka_rest_kerberos_principal: The principal configured in kdc server ex: restproxy/ip-172-31-34-246.us-east-2.compute.internal@REALM.EXAMPLE.COM>
 ksql:
   ## To configure KSQL to run as a custom user, uncomment below
-  # vars:
+  vars:
+    ksql_service_environment_overrides:
+      KSQL_HEAP_OPTS: "-Xmx1g"  
   #   ksql_user: custom-user
   #   ksql_group: custom-group
+  #
+  #   ## To copy files to ksql hosts, set this list below
+  #   ksql_copy_files:
+  #     - source_path: /path/to/file.txt
+  #       destination_path: /tmp/file.txt
   hosts:
     kafka3.ivan.ps.confluent.io:
       ## For kerberos sasl protocol, EACH host will need these two variables:
@@ -397,6 +458,11 @@ kafka_connect:
   #   kafka_connect_user: custom-user
   #   kafka_connect_group: custom-group
   #
+  #   ## To copy files to kafka_connect hosts, set this list below
+  #   kafka_connect_copy_files:
+  #     - source_path: /path/to/file.txt
+  #       destination_path: /tmp/file.txt
+  #
   #### Connectors and the Confluent Hub
   ## Adding Connector Paths.
   ## NOTE: This variable is mapped to the `plugin.path` Kafka Connect property.
@@ -423,7 +489,7 @@ kafka_connect:
   # kafka_connect_secret_registry_enabled: false
   #
   hosts:
-    kafka2.ivan.ps.confluent.io:
+    kafka4.ivan.ps.confluent.io:
 
       ## For kerberos sasl protocol, EACH host will need these two variables:
       # kafka_connect_kerberos_keytab_path: <The path on ansible host to keytab file, eg. /tmp/keytabs/connect-ip-172-31-34-246.us-east-2.compute.internal
@@ -455,12 +521,19 @@ control_center:
   # vars:
   #   control_center_user: custom-user
   #   control_center_group: custom-group
+  #
+  #   ## To copy files to control_center hosts, set this list below
+  #   control_center_copy_files:
+  #     - source_path: /path/to/file.txt
+  #       destination_path: /tmp/file.txt
   hosts:
     kafka4.ivan.ps.confluent.io:
       ## For kerberos sasl protocol, EACH host will need these two variables:
       # control_center_kerberos_keytab_path: <The path on ansible host to keytab file, eg. /tmp/keytabs/controlcenter-ip-172-31-37-15.us-east-2.compute.internal
       # control_center_kerberos_principal: The principal configured in kdc server ex: controlcenter/ip-172-31-37-15.us-east-2.compute.internal@REALM.EXAMPLE.COM>
-  # ## If you are configuring multiple connect or ksql clusters, the below variables are mandatory.
+  vars:
+    control_center_ssl_enabled: false
+   # ## If you are configuring multiple connect or ksql clusters, the below variables are mandatory.
   # # The group names must match the group names as they are in your inventory
   # vars:
   #   ksql_cluster_ansible_group_names:

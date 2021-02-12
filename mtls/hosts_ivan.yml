@@ -58,10 +58,10 @@ all:
     ## Option 2: Custom Keystores and Truststores
     ## CP-Ansible can move keystores/truststores to their corresponding hosts and configure the components to use them. Set These vars
     ssl_provided_keystore_and_truststore: true
-    ssl_keystore_filepath: "/Users/ikunz/playground/ssl-certs/{{inventory_hostname}}.keystore.jks"
+    ssl_keystore_filepath: "~/playground/aws/kafka-keystore.jks"
     ssl_keystore_key_password: test1234
     ssl_keystore_store_password: test1234
-    ssl_truststore_filepath: "/Users/ikunz/playground/ssl-certs/{{inventory_hostname}}.truststore.jks"
+    ssl_truststore_filepath: "~/playground/aws/kafka-truststore.jks"
     ssl_truststore_password: test1234
     ssl_truststore_ca_cert_alias: caroot
 

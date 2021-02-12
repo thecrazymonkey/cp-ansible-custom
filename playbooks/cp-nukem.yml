@@ -1,0 +1,184 @@
+---
+- name: Remove CP installation
+  gather_facts: no 
+  become: true
+  hosts: all
+  vars:
+    installation_method: package
+    confluent_repo_version: 6.1
+    confluent_package_version: 6.1.0
+    confluent_full_package_version: "{{ confluent_package_version + '-1' }}"
+    confluent_package_redhat_suffix: "{{ '-' + confluent_full_package_version if confluent_full_package_version != '' else ''}}"
+    confluent_package_debian_suffix: "{{ '=' + confluent_full_package_version if confluent_full_package_version != '' else ''}}"
+    all_packages:
+      - java-11-openjdk
+      - java-1.8.0-openjdk
+      - openjdk-8-jdk
+      - confluent-common
+      - confluent-rest-utils
+      - confluent-metadata-service
+      - confluent-ce-kafka-http-server
+      - confluent-kafka-rest
+      - confluent-server-rest
+      - confluent-telemetry
+      - confluent-server
+      - confluent-rebalancer
+      - confluent-security    
+      - confluent-kafka
+      - confluent-control-center-fe
+      - confluent-control-center   
+      - confluent-ksqldb
+      - confluent-ksql 
+      - confluent-schema-registry
+      - confluent-hub-client
+      - confluent-kafka-connect-replicator    
+    cp_group: confluent
+    all_users:
+      - cp-metadata-service
+      - cp-ce-kafka-http-server
+      - cp-kafka-rest
+      - cp-ce-kafka-rest
+      - cp-kafka
+      - cp-kafka-connect
+      - cp-control-center
+      - cp-schema-registry
+      - cp-ksql
+    all_services:
+      - confluent-control-center
+      - confluent-kafka-connect
+      - confluent-kafka-rest
+      - confluent-ksqldb
+      - confluent-ksq
+      - confluent-schema-registry
+      - confluent-server
+      - confluent-zookeeper
+    all_data:
+      - kafka
+      - confluent
+      - kafka-streams
+      - zookeeper
+    all_config:
+      - kafka
+      - schema-registry
+      - kafka-rest
+      - zookeeper
+      - ksqldb
+      - confluent-control-center
+      - confluent-metadata-service
+      - confluent-rebalancer
+    all_roles:
+      - zookeeper
+      - kafka_broker
+      - kafka_connect
+      - kafka_connect_replicator
+      - kafka_rest
+      - ksql
+      - control_center
+      - schema_registry
+    all_else:
+      - /usr/local/bin/confluent
+      - /opt/prometheus
+      - /opt/jolokia
+      - /opt/confluent
+      - /var/log/kafka
+      - /var/log/confluent
+      - /var/log/kafka-connect
+
+
+
+  tasks:
+  - name: Gather OS Facts
+    setup:
+      # Only gathers items in list, filters out the rest
+      filter: "{{item}}"
+      gather_subset:
+        - '!all'
+    loop:
+      - ansible_os_family
+      - ansible_fqdn  
+
+  - name: Recursively stop services
+    ansible.builtin.systemd:
+      name: "{{ item }}"
+      state: stopped
+    loop: "{{ all_services }}"
+    # ignore errors from services that do not exist
+    ignore_errors: True
+
+  - name: Uninstall the packages
+    yum:
+      name: "{{item}}{{confluent_package_redhat_suffix}}"
+      state: absent
+    loop: "{{all_packages}}"
+    when:
+      - ansible_os_family == "RedHat"
+      - installation_method == "package"
+    tags: package
+
+  - name: Unnstall the packages
+    apt:
+      name: "{{item}}{{confluent_package_debian_suffix}}"
+      state: absent
+    loop: "{{all_packages}}"
+    when:
+      - ansible_os_family == "Debian"
+      - installation_method == "package"
+    tags: package
+ 
+  - name: Remove Users
+    user:
+      name: "{{item}}"
+      state: absent
+      group: "{cp_group}}"      
+    loop: "{{all_users}}"
+
+  # Configure environment
+  - name: Remove Group
+    group:
+      state: absent
+      name: "{{cp_group}}"
+
+  - name: Recursively remove service override
+    ansible.builtin.file:
+      path: /usr/lib/systemd/system/{{ item }}.service
+      state: absent
+    loop: "{{ all_services }}"
+
+  - name: Recursively remove override directory
+    ansible.builtin.file:
+      path: /usr/lib/systemd/system/{{ item }}.service.d
+      state: absent
+    loop: "{{ all_services }}"
+
+  - name: Recursively remove file folders
+    ansible.builtin.file:
+      path: /var/lib/{{ item }}
+      state: absent
+    loop: "{{ all_data }}"
+
+  - name: Remove certs
+    ansible.builtin.file:
+      path: /var/ssl/private
+      state: absent
+
+  - name: Recursively remove config
+    ansible.builtin.file:
+      path: /etc/{{ item }}
+      state: absent
+    loop: "{{ all_config }}"
+
+  - name: Recursively remove keytabs
+    ansible.builtin.file:
+      path: /etc/security/keytabs/{{ item }}.keytab
+      state: absent
+    loop: "{{ all_roles }}"
+
+  - name: Recursively remove all else
+    ansible.builtin.file:
+      path: "{{ item }}"
+      state: absent
+    loop: "{{ all_else }}"
+
+  - name: Just force systemd to reread configs 
+    ansible.builtin.systemd:
+      daemon_reload: yes    

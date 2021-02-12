@@ -63,3 +63,12 @@
         groups: docker
         append: yes
       become: yes
+
+    - name: Install Python3
+      yum:
+        name: python3
+        state: latest
+    - name: Install docker package
+      pip:
+        executable: pip3
+        name: docker

@@ -1,0 +1,15 @@
+dn: cn=replicatorSA,ou=users,{{ LDAP_BASE_DN }}
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: shadowAccount
+uid: replicatorSA
+sn: Sheen
+givenName: ReplicatorSA
+cn: replicatorSA
+displayName: ReplicatorSA Sheen
+uidNumber: 10018
+gidNumber: 5000
+userPassword: replicatorSA
+gecos: connectorSA
+loginShell: /bin/bash
+homeDirectory: /home/replicatorSA

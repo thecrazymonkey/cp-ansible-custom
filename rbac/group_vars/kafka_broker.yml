@@ -1,6 +1,7 @@
 kafka_broker_service_environment_overrides:
   JMX_PORT: 9999
   KAFKA_JMX_OPTS: "-Dcom.sun.management.jmxremote.rmi.port=9999 -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false  -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname={{inventory_hostname}} -Dcom.sun.management.jmxremote.local.only=false"
+  KAFKA_HEAP_OPTS: "-Xms1g -Xmx1g -XX:MetaspaceSize=96m -XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:G1HeapRegionSize=16M -XX:MinMetaspaceFreeRatio=50 -XX:MaxMetaspaceFreeRatio=80"
 kafka_broker_sysctl:
   vm.swappiness: 1
   net.core.rmem_max: '{{tuned_buffer_size}}'

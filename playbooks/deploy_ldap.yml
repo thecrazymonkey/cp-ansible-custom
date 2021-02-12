@@ -15,10 +15,9 @@
       docker_container:
         name: openldap
         hostname: openldap
-        image: osixia/openldap:latest
-        restart_policy: "always"
-        restart_retries" "20"
-        state: "started"
+        image: "osixia/openldap:latest"
+        restart_policy: always
+        state: started
         volumes:
           - /home/centos/ldap_users:/container/service/slapd/assets/config/bootstrap/ldif/custom
         ports:
