@@ -3,3 +3,4 @@
 .DS_Store
 **/generated_ssl_files
 .python-version
+**/error_files

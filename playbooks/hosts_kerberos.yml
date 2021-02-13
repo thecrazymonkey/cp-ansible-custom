@@ -29,6 +29,10 @@ all:
         headless: false
         service: kafka
         server_domain: ".ivan.ps.confluent.io"
+      - name: kafka4
+        headless: false
+        service: kafka
+        server_domain: ".ivan.ps.confluent.io"
 
     
 kerberos:
