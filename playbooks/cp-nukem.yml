@@ -6,7 +6,7 @@
   vars:
     installation_method: package
     confluent_repo_version: 6.1
-    confluent_package_version: 6.1.0
+    confluent_package_version: 6.1.1
     confluent_full_package_version: "{{ confluent_package_version + '-1' }}"
     confluent_package_redhat_suffix: "{{ '-' + confluent_full_package_version if confluent_full_package_version != '' else ''}}"
     confluent_package_debian_suffix: "{{ '=' + confluent_full_package_version if confluent_full_package_version != '' else ''}}"
@@ -32,6 +32,9 @@
       - confluent-schema-registry
       - confluent-hub-client
       - confluent-kafka-connect-replicator    
+      - confluent-kafka-2.12
+      - confluent-kafka-2.11
+      - confluent-kafka
     cp_group: confluent
     all_users:
       - cp-metadata-service
@@ -51,6 +54,7 @@
       - confluent-ksq
       - confluent-schema-registry
       - confluent-server
+      - confluent-kafka
       - confluent-zookeeper
     all_data:
       - kafka
@@ -146,7 +150,7 @@
 
   - name: Recursively remove override directory
     ansible.builtin.file:
-      path: /usr/lib/systemd/system/{{ item }}.service.d
+      path: /etc/systemd/system/{{ item }}.service.d
       state: absent
     loop: "{{ all_services }}"
 
