@@ -51,7 +51,7 @@
       - confluent-kafka-connect
       - confluent-kafka-rest
       - confluent-ksqldb
-      - confluent-ksq
+      - confluent-ksql
       - confluent-schema-registry
       - confluent-server
       - confluent-kafka
