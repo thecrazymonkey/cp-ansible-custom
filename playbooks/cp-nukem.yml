@@ -3,15 +3,18 @@
   gather_facts: no 
   become: true
   hosts: all
+  ignore_errors: True
   vars:
-    installation_method: package
-    confluent_repo_version: 6.1
-    confluent_package_version: 6.1.1
+    installation_method: archive
+    confluent_repo_version: 7.6
+    confluent_package_version: 7.6.1
+    archive_destination_path: /opt/confluent
     confluent_full_package_version: "{{ confluent_package_version + '-1' }}"
     confluent_package_redhat_suffix: "{{ '-' + confluent_full_package_version if confluent_full_package_version != '' else ''}}"
     confluent_package_debian_suffix: "{{ '=' + confluent_full_package_version if confluent_full_package_version != '' else ''}}"
     all_packages:
       - java-11-openjdk
+      - java-17-openjdk
       - java-1.8.0-openjdk
       - openjdk-8-jdk
       - confluent-common
@@ -46,23 +49,33 @@
       - cp-control-center
       - cp-schema-registry
       - cp-ksql
-    all_services:
+    all_component_services:
       - confluent-control-center
       - confluent-kafka-connect
       - confluent-kafka-rest
       - confluent-ksqldb
       - confluent-ksql
       - confluent-schema-registry
-      - confluent-server
+    all_services:
+      - confluent-control-center
+      - confluent-kafka-connect
+      - confluent-kafka-rest
       - confluent-kafka
+      - confluent-kcontroller
+      - confluent-server
       - confluent-zookeeper
+      - confluent-ksqldb
+      - confluent-ksql
+      - confluent-schema-registry
     all_data:
+      - controller
       - kafka
       - confluent
       - kafka-streams
       - zookeeper
     all_config:
       - kafka
+      - controller
       - schema-registry
       - kafka-rest
       - zookeeper
@@ -72,6 +85,7 @@
       - confluent-rebalancer
     all_roles:
       - zookeeper
+      - kafka_controller
       - kafka_broker
       - kafka_connect
       - kafka_connect_replicator
@@ -83,8 +97,9 @@
       - /usr/local/bin/confluent
       - /opt/prometheus
       - /opt/jolokia
-      - /opt/confluent
+      - "{{ archive_destination_path }}"
       - /var/log/kafka
+      - /var/log/controller
       - /var/log/confluent
       - /var/log/kafka-connect
 
@@ -101,19 +116,42 @@
       - ansible_os_family
       - ansible_fqdn  
 
-  - name: Recursively stop services
+  - set_fact:
+      controller_group: "{{ groups['zookeeper'] if 'zookeeper' in groups else groups['kafka_controller'] }}"
+
+  - set_fact:
+      component_list: "{{ groups['schema_registry']|d([]) + groups['control_center']|d([]) + groups['kafka_connect']|d([]) + groups['kafka_connect_replicator']|d([]) + groups['kafka_rest']|d([]) + groups['ksql']|d([]) + groups['ksqldb']|d([]) }}"
+
+  - name: Recursively stop component services
     ansible.builtin.systemd:
       name: "{{ item }}"
       state: stopped
-    loop: "{{ all_services }}"
-    # ignore errors from services that do not exist
-    ignore_errors: True
+    loop: "{{ all_component_services }}"
+    when: inventory_hostname in component_list
+
+  - name: Recursively stop broker services
+    ansible.builtin.systemd:
+      name: confluent-server
+      state: stopped
+    when: inventory_hostname in groups['kafka_broker']
+
+  - name: Recursively stop controller services
+    ansible.builtin.systemd:
+      name: confluent-kcontroller
+      state: stopped
+    when: inventory_hostname in controller_group
+
+  - name: Recursively stop controller services
+    ansible.builtin.systemd:
+      name: confluent-zookeeper
+      state: stopped
+    when: inventory_hostname in controller_group
 
   - name: Uninstall the packages
     yum:
       name: "{{item}}{{confluent_package_redhat_suffix}}"
       state: absent
-    loop: "{{all_packages}}"
+    loop: "{{ all_packages }}"
     when:
       - ansible_os_family == "RedHat"
       - installation_method == "package"
@@ -123,7 +161,7 @@
     apt:
       name: "{{item}}{{confluent_package_debian_suffix}}"
       state: absent
-    loop: "{{all_packages}}"
+    loop: "{{ all_packages }}"
     when:
       - ansible_os_family == "Debian"
       - installation_method == "package"
@@ -170,6 +208,8 @@
       path: /etc/{{ item }}
       state: absent
     loop: "{{ all_config }}"
+    when:
+      - installation_method == "package"
 
   - name: Recursively remove keytabs
     ansible.builtin.file:
